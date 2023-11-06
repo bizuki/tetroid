@@ -26,6 +26,12 @@ in
       servant-lucid = self.callHackage "servant-lucid" "0.9" { };
       servant-jsaddle = noCheck (self.callCabal2nix "servant-jsaddle" servant-jsaddle { });
       jsaddle-warp = fast super.jsaddle-warp;
+      time-compat = fast (self.callHackage "time-compat" "1.9.2.2" { });
+      type-errors = self.callHackage "type-errors" "0.2.0.0" { };
+      type-errors-pretty = self.callHackage "type-errors-pretty" "0.0.1.1" { };
+      first-class-families = self.callHackage "first-class-families" "0.5.0.0" { };
+      th-abstraction = self.callHackage "th-abstraction" "0.3.1.0" { };
+      th-lift = self.callHackage "th-lift" "0.8.0.1" { };
       tetroid = self.callCabal2nix "tetroid" ./. { miso = misoPkgs.miso-jsaddle; };
     });
     tetroidHaskell = misoPkgs.pkgs // {

@@ -24,8 +24,8 @@ in
     lens = noCheck prev.lens;
     semigroupoids = noCheck prev.semigroupoids;
     http-types = noCheck prev.http-types;
-    servant = prev.callHackage "servant" "0.16" { };
-    servant-client-core = prev.callHackage "servant-client-core" "0.16" { };
-    servant-jsaddle = final.callCabal2nix "servant-jsaddle" tetroid.servant-jsaddle { };
+    # servant = prev.callHackage "servant" "0.16" { };
+    # servant-client-core = prev.callHackage "servant-client-core" "0.16" { };
+    # servant-jsaddle = final.callCabal2nix "servant-jsaddle" tetroid.servant-jsaddle { };
     tetroid = prev.callCabal2nix "tetroid" ./../.. { };
 })).tetroid
