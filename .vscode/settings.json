@@ -1,4 +1,0 @@
-{
-    "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix",
-    "nixEnvSelector.nixShellConfig": "${workspaceRoot}/shell.nix"
-}

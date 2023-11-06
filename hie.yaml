@@ -1,2 +1,3 @@
 cradle:
-  cabal:
+  stack:
+    stackYaml: "./stack.yaml"
