@@ -5,9 +5,10 @@ module Queue (
     takeTetromino
 ) where
 
-import Tetrominos (Tetromino(..), TetrominoState, spawnTetromino)
-import System.Random.Shuffle
-import System.Random (RandomGen, uniformR)
+import           System.Random         (RandomGen, uniformR)
+import           System.Random.Shuffle (shuffle)
+import           Tetrominos            (Tetromino (..), TetrominoState,
+                                        spawnTetromino)
 
 type Queue = [Tetromino]
 

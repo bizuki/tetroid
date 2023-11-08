@@ -4,22 +4,23 @@ module Game (
     handleGame
 ) where
 
-import CodeWorld (Event (KeyPress, KeyRelease, TimePassing))
-import Data.Function ( (&) ) 
+import           CodeWorld     hiding ((&))
+import           Data.Function ((&))
 
-import Common
-import Playfield
-import Tetrominos
-import Queue
-import Keyboard
-import Movement
+import           Common        (fullPlayfieldHeight, playfieldWidth)
+import           Keyboard      (ControlState (ControlState), handleControl,
+                                initControl)
+import           Movement      (MovementState, handleMovement, initMovement)
+import           Playfield     (Playfield, createPlayfield, processActions)
+import           Queue         (Queue, takeTetromino)
+import           Tetrominos    (LockState, TetrominoState, initLock)
 
 data GameState = GameState {
-    field :: Playfield (Maybe Tetromino),
-    control :: ControlState,
-    movement :: MovementState,
-    lock :: LockState,
-    currentPiece :: TetrominoState,
+    field          :: Playfield,
+    control        :: ControlState,
+    movement       :: MovementState,
+    lock           :: LockState,
+    currentPiece   :: TetrominoState,
     tetrominoQueue :: Queue
 }
 
@@ -30,7 +31,7 @@ updateControl :: Event -> GameState -> GameState
 updateControl event state = state {control = handleControl event $ control state}
 
 updatePiece :: Event -> GameState -> GameState
-updatePiece (TimePassing time) state@(GameState field (ControlState _ lastControl) move lock piece queue) 
+updatePiece (TimePassing time) state@(GameState field (ControlState _ lastControl) move lock piece queue)
     = let (newMovement, actions) = handleMovement 1 time lastControl move
           (newQueue, newPiece, newField, newLock) = processActions time (queue, piece, field, lock) actions
       in state {
@@ -43,6 +44,6 @@ updatePiece (TimePassing time) state@(GameState field (ControlState _ lastContro
 updatePiece _ state = updatePiece (TimePassing 0) state
 
 handleGame :: Event -> GameState -> GameState
-handleGame event state 
-    = updateControl event state 
+handleGame event state
+    = updateControl event state
     & updatePiece event

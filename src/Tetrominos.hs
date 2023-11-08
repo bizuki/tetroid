@@ -14,7 +14,7 @@ module Tetrominos (
     initLock
 ) where
 
-import Common
+import           Common (Cell (Cell), Coords)
 
 data Tetromino
   = LPiece
@@ -26,23 +26,23 @@ data Tetromino
   | OPiece
   deriving (Eq, Show, Bounded, Enum, Ord)
 
-data TetrominoRotation 
-    = Flat 
-    | RightRotation 
-    | Double 
+data TetrominoRotation
+    = Flat
+    | RightRotation
+    | Double
     | LeftRotation
     deriving (Show, Eq, Ord)
 
 data LockState = LockState {
     lowestLine :: Int,
-    moves :: Int,
-    delay :: Double
+    moves      :: Int,
+    delay      :: Double
 } deriving (Show)
 
 data TetrominoState = TetrominoState {
-    tetrominoType :: Tetromino, 
-    tetrominoRotation :: TetrominoRotation, 
-    tetrominoCenter :: Coords
+    tetrominoType     :: Tetromino,
+    tetrominoRotation :: TetrominoRotation,
+    tetrominoCenter   :: Coords
 } deriving (Show, Eq)
 
 spawnLocation :: Coords
@@ -64,10 +64,10 @@ tetrominoLayout Double piece = map rotateCounterClockwise_ (tetrominoLayout Left
 tetrominoLayout RightRotation piece = map rotateCounterClockwise_ (tetrominoLayout Double piece)
 
 rotate :: TetrominoRotation -> TetrominoRotation
-rotate Flat = RightRotation
+rotate Flat          = RightRotation
 rotate RightRotation = Double
-rotate Double = LeftRotation
-rotate LeftRotation = Flat
+rotate Double        = LeftRotation
+rotate LeftRotation  = Flat
 
 rotateOffsets :: Tetromino -> TetrominoRotation -> [(Int, Int)]
 rotateOffsets OPiece Flat = [(0, 0)]
@@ -84,10 +84,10 @@ rotateOffsets _ Double = [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]
 rotateOffsets _ LeftRotation = [(0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)]
 
 tryRotate :: TetrominoState -> [TetrominoState]
-tryRotate (TetrominoState piece rotation (x, y))  
-    = zipWith 
-        (\(x1, y1) (x2, y2) -> TetrominoState piece dstRotation (x - x2 + x1, y - y2 + y1)) 
-        srcOffsets 
+tryRotate (TetrominoState piece rotation (x, y))
+    = zipWith
+        (\(x1, y1) (x2, y2) -> TetrominoState piece dstRotation (x - x2 + x1, y - y2 + y1))
+        srcOffsets
         dstOffsets
     where
         srcOffsets = rotateOffsets piece rotation
@@ -95,7 +95,7 @@ tryRotate (TetrominoState piece rotation (x, y))
         dstOffsets = rotateOffsets piece dstRotation
 
 tetrominoCells :: TetrominoState -> [Cell (Maybe Tetromino)]
-tetrominoCells (TetrominoState piece rotation (cx, cy)) 
+tetrominoCells (TetrominoState piece rotation (cx, cy))
     = map (\(x, y) -> Cell (Just piece) (x + cx, y + cy)) layout
     where
         layout = tetrominoLayout rotation piece

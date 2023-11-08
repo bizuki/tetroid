@@ -8,8 +8,8 @@ module Keyboard (
     initControl
 ) where
 
-import CodeWorld
-import Data.Text (Text)
+import           CodeWorld
+import           Data.Text (Text)
 
 data Control
     = MoveRight
@@ -23,19 +23,19 @@ data KeyEvent = KeyEvent Control Bool deriving (Show, Eq)
 
 parseControl_ :: Text -> Maybe Control
 parseControl_ "Right" = Just MoveRight
-parseControl_ "Left" = Just MoveLeft
-parseControl_ " " = Just HardDrop
-parseControl_ "Down" = Just SoftDrop
-parseControl_ "Up" = Just RotateClockwise
-parseControl_ _ = Nothing
+parseControl_ "Left"  = Just MoveLeft
+parseControl_ " "     = Just HardDrop
+parseControl_ "Down"  = Just SoftDrop
+parseControl_ "Up"    = Just RotateClockwise
+parseControl_ _       = Nothing
 
 parseControl :: Event -> Maybe KeyEvent
-parseControl (KeyPress btn) = (`KeyEvent` True) <$> parseControl_ btn
+parseControl (KeyPress btn)   = (`KeyEvent` True) <$> parseControl_ btn
 parseControl (KeyRelease btn) = (`KeyEvent` False) <$> parseControl_ btn
-parseControl _ = Nothing
+parseControl _                = Nothing
 
 data ControlState = ControlState {
-    pressed :: [Control],
+    pressed     :: [Control],
     lastControl :: Maybe KeyEvent
 } deriving (Show, Eq)
 

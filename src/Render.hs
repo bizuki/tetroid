@@ -3,16 +3,17 @@ module Render (
 ) where
 
 
-import CodeWorld
+import           CodeWorld
 
-import Common
-import Tetrominos
-import Playfield
-import Game
-import Data.Bifunctor (bimap)
-import Control.Applicative (liftA2)
-import Control.Monad (join)
-import Queue (Queue)
+import           Common              (Cell (Cell, pos), playfieldHeight,
+                                      playfieldWidth)
+import           Control.Applicative (liftA2)
+import           Control.Monad       (join)
+import           Data.Bifunctor      (bimap)
+import           Game                (GameState (GameState))
+import           Playfield           (Playfield)
+import           Queue               (Queue)
+import           Tetrominos          (Tetromino (..), tetrominoCells)
 
 cellSize :: Double
 cellSize = 0.55
@@ -80,7 +81,7 @@ renderPiece piece =
     render b = if b then renderCell (Cell (Just piece) (0, 0)) else blank
     renderLine = withSpacing cellSize 0 . map render
 
-renderPlayfield :: Int -> Int -> Playfield (Maybe Tetromino) -> Picture
+renderPlayfield :: Int -> Int -> Playfield -> Picture
 renderPlayfield w h field =
   translated (-fromIntegral w * cellSize / 2) (-fromIntegral h * cellSize / 2)
     $ foldl (<>) blank
@@ -94,9 +95,9 @@ visibleQueueLength :: Int
 visibleQueueLength = 4
 
 renderQueue :: Queue -> Picture
-renderQueue queue = 
-  translated offsetX offsetY 
-    $ withSpacing 0 (cellSize * 2 + 0.25) 
+renderQueue queue =
+  translated offsetX offsetY
+    $ withSpacing 0 (cellSize * 2 + 0.25)
     $ map renderPiece
     $ reverse pieces
   where
@@ -105,11 +106,11 @@ renderQueue queue =
     offsetY = (fromIntegral playfieldHeight * cellSize / 2) - (fromIntegral (length pieces + 1) * (cellSize + 0.25))
 
 renderGame :: GameState -> Picture
-renderGame (GameState playfield _ _ _ currentPiece queue) 
-  = renderField (tetrominoCells currentPiece) <> 
+renderGame (GameState playfield _ _ _ currentPiece queue)
+  = renderField (tetrominoCells currentPiece) <>
     renderField playfield <>
     renderQueue queue
-  where 
+  where
     renderField = renderPlayfield playfieldWidth playfieldHeight
-    
-    
+
+

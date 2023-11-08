@@ -1,5 +1,5 @@
 {-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase   #-}
 module Movement (
     MovementState(..),
     Action(..),
@@ -9,32 +9,32 @@ module Movement (
 
 ) where
 
-import Keyboard ( Control(..), KeyEvent(..) )
-import Data.Maybe (mapMaybe)
-import Common (playfieldWidth)
+import           Common     (playfieldWidth)
+import           Data.Maybe (mapMaybe)
+import           Keyboard   (Control (..), KeyEvent (..))
 
 
 data MovementState = MovementState {
     activeMovements :: [MovementType Movement],
     horizontalQueue :: [Control],
-    verticalQueue :: [Control]
+    verticalQueue   :: [Control]
 } deriving (Show)
 
 data MovementType a
     = Delayed {
         delay :: Double,
-        item :: a
+        item  :: a
     }
     | Active {
-        lag :: Double,
+        lag  :: Double,
         item :: a
     } deriving (Show)
 
 instance Eq a => Eq (MovementType a) where
     (Delayed _ this) == (Delayed _ other) = this == other
-    (Delayed _ this) == (Active _ other) = this == other
-    (Active _ this) == (Delayed _ other) = this == other
-    (Active _ this) == (Active _ other) = this == other
+    (Delayed _ this) == (Active _ other)  = this == other
+    (Active _ this) == (Delayed _ other)  = this == other
+    (Active _ this) == (Active _ other)   = this == other
 
 data Action
     = Drop
@@ -48,7 +48,7 @@ data Movement
         action :: Action
     }
     | Continous {
-        speed :: Double -> Double,
+        speed  :: Double -> Double,
         action :: Action
     }
 
@@ -58,9 +58,9 @@ instance Show Movement where
 
 instance Eq Movement where
     (==) :: Movement -> Movement -> Bool
-    (Snap this) == (Snap other) = this == other
+    (Snap this) == (Snap other)               = this == other
     (Continous _ this) == (Continous _ other) = this == other
-    _ == _ = False
+    _ == _                                    = False
 
 
 gravity :: Double -> Double
@@ -73,11 +73,11 @@ continousMovement MoveRight = [Delayed 0.3 (Continous (const (fromIntegral playf
 continousMovement _ = []
 
 snapMovement :: Control -> [MovementType Movement]
-snapMovement HardDrop = [Active 0 (Snap Drop)]
-snapMovement MoveLeft = [Active 0 (Snap (Move (-1, 0)))]
-snapMovement MoveRight = [Active 0 (Snap (Move (1, 0)))]
+snapMovement HardDrop        = [Active 0 (Snap Drop)]
+snapMovement MoveLeft        = [Active 0 (Snap (Move (-1, 0)))]
+snapMovement MoveRight       = [Active 0 (Snap (Move (1, 0)))]
 snapMovement RotateClockwise = [Active 0 (Snap Rotate)]
-snapMovement _ = []
+snapMovement _               = []
 
 controlToMovement :: Control -> [MovementType Movement]
 controlToMovement control = continousMovement control ++ snapMovement control
@@ -90,7 +90,7 @@ handleHorizontalControl (KeyEvent control True) state@(MovementState activeMovem
     = case horizontalQueue of
         [] -> state {horizontalQueue = [control], activeMovements = controlToMovement control ++ activeMovements}
         [currentControl] -> state {
-            horizontalQueue = control:horizontalQueue, 
+            horizontalQueue = control:horizontalQueue,
             activeMovements = controlToMovement control ++ filterOutControl currentControl activeMovements}
         _ -> error "invalid state"
 handleHorizontalControl (KeyEvent control False) state@(MovementState activeMovements list@(currentControl:xs) _)
@@ -102,7 +102,7 @@ handleHorizontalControl (KeyEvent ctrl False) state@(MovementState _ [] _) = err
 handleVerticalControl :: KeyEvent -> MovementState -> MovementState
 handleVerticalControl (KeyEvent control True) state@(MovementState activeMovements _ _)
     = state {
-        verticalQueue = [control], 
+        verticalQueue = [control],
         activeMovements = controlToMovement control ++ filter (/= gravityMovement) activeMovements}
 handleVerticalControl (KeyEvent control False) state@(MovementState activeMovements _ _)
     = state {verticalQueue = [], activeMovements = filterOutControl control activeMovements}

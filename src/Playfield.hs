@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiWayIf        #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module Playfield (
     Playfield,
@@ -9,22 +9,26 @@ module Playfield (
 
 import           Control.Applicative (liftA2)
 
-import           Common
-import           Tetrominos
-import           Queue
-import           Data.Set (fromList)
-import           Data.Maybe (isJust, isNothing, fromMaybe, mapMaybe)
-import           Movement (Action (..))
-import           Data.List (find, sortBy, groupBy)
+import           Common              (Cell (..), fullPlayfieldHeight,
+                                      playfieldHeight, playfieldWidth)
+import           Data.List           (find, groupBy, sortBy)
+import           Data.Maybe          (fromMaybe, isJust, isNothing, mapMaybe)
+import           Data.Set            (fromList)
+import           Movement            (Action (..))
+import           Queue               (Queue, takeTetromino)
+import           Tetrominos          (LockState (..), Tetromino,
+                                      TetrominoState (TetrominoState, tetrominoCenter, tetrominoRotation),
+                                      initLock, rotate, tetrominoCells,
+                                      tryRotate, updateLockDelay)
 
 
-type Playfield a = [Cell a]
+type Playfield' a = [Cell a]
 
-type TetrisPlayfield = Playfield (Maybe Tetromino)
+type Playfield = Playfield' (Maybe Tetromino)
 
-type State = (Queue, TetrominoState, TetrisPlayfield, LockState)
+type State = (Queue, TetrominoState, Playfield, LockState)
 
-createPlayfield :: Int -> Int -> TetrisPlayfield
+createPlayfield :: Int -> Int -> Playfield
 createPlayfield w h = Cell Nothing <$> liftA2 (,) [0..(w - 1)] [0..(h - 1)]
 
 applyAction :: Action -> TetrominoState -> TetrominoState
@@ -33,13 +37,13 @@ applyAction (Move (dx, dy)) state@(TetrominoState _ _ (x, y)) = state {tetromino
 applyAction Rotate state@(TetrominoState _ rotation _) = state {tetrominoRotation = rotate rotation }
 applyAction Lock state = state -- TODO: need to implement
 
-nonEmptyCells :: TetrisPlayfield -> TetrisPlayfield
+nonEmptyCells :: Playfield -> Playfield
 nonEmptyCells = filter (isJust . value)
 
 insideField :: (Int, Int) -> Bool
 insideField (x, y) = x >= 0 && x < playfieldWidth && y >= 0 && y < fullPlayfieldHeight
 
-allowedState :: (TetrominoState, TetrisPlayfield) -> Bool
+allowedState :: (TetrominoState, Playfield) -> Bool
 allowedState (currentPiece, playfield)
     =  isNothing (find (`elem` forbiddenCells) cells)
     && isNothing (find (not . insideField) cells)
@@ -47,11 +51,11 @@ allowedState (currentPiece, playfield)
         cells = map pos $ tetrominoCells currentPiece
         forbiddenCells = fromList $ map pos $ nonEmptyCells playfield
 
-processRotation :: (TetrominoState, TetrisPlayfield) -> TetrominoState
+processRotation :: (TetrominoState, Playfield) -> TetrominoState
 processRotation (piece, field)
     = fromMaybe piece $ find ((flip $ curry allowedState) field) $ tryRotate piece
 
-processDrop :: (TetrominoState, TetrisPlayfield) -> TetrominoState
+processDrop :: (TetrominoState, Playfield) -> TetrominoState
 processDrop (piece, field)
     = if allowedState (nextPiece, field)
         then processDrop (nextPiece, field)
@@ -59,20 +63,20 @@ processDrop (piece, field)
     where
         nextPiece = applyAction Drop piece
 
-spawnLine :: Int -> Int -> TetrisPlayfield
+spawnLine :: Int -> Int -> Playfield
 spawnLine w h = map (\x -> Cell Nothing (x, h - 1)) [0..(w - 1)]
 
-clearLine :: Int -> TetrisPlayfield -> TetrisPlayfield
+clearLine :: Int -> Playfield -> Playfield
 clearLine clearedY
-    = (spawnLine playfieldWidth fullPlayfieldHeight ++) 
-    . map (\(Cell val (x, y)) -> 
+    = (spawnLine playfieldWidth fullPlayfieldHeight ++)
+    . map (\(Cell val (x, y)) ->
         Cell val $ if y < clearedY
             then (x, y)
             else (x, y - 1)
         )
     . filter ((/=clearedY) . snd . pos)
 
-clearLines :: TetrisPlayfield -> TetrisPlayfield
+clearLines :: Playfield -> Playfield
 clearLines field
     = foldl (\currentField (line, i) -> clearLine (line - i) currentField) field $ reverse $ zip linesToClear [0..]
     where
@@ -82,8 +86,8 @@ clearLines field
             $ groupBy (\(Cell _ (_, y1)) (Cell _ (_, y2)) -> y1 == y2)
             $ sortBy (\(Cell _ (_, y1)) (Cell _ (_, y2)) -> compare y1 y2) field
 
-lockTetromino :: TetrominoState -> TetrisPlayfield -> TetrisPlayfield
-lockTetromino piece@(TetrominoState pieceType _ _) field = 
+lockTetromino :: TetrominoState -> Playfield -> Playfield
+lockTetromino piece@(TetrominoState pieceType _ _) field =
         if aboveVisibleZone piece
             then error "Game over"
             else clearLines newField
@@ -98,10 +102,10 @@ lockTetromino piece@(TetrominoState pieceType _ _) field =
 
 aboveVisibleZone :: TetrominoState -> Bool
 aboveVisibleZone piece = all (isAbove . pos) $ tetrominoCells piece
-    where 
+    where
         isAbove (_, y) = y >= playfieldHeight
 
-spawnPiece :: TetrominoState -> TetrisPlayfield -> TetrominoState
+spawnPiece :: TetrominoState -> Playfield -> TetrominoState
 spawnPiece piece field = if allowedState (piece, field)
     then piece
     else let movedPiece = applyAction (Move (0, 1)) piece
@@ -109,7 +113,7 @@ spawnPiece piece field = if allowedState (piece, field)
                 then movedPiece
                 else error "Game over"
 
-processAction_ :: (Queue, TetrominoState, TetrisPlayfield) -> Action -> (Queue, TetrominoState, TetrisPlayfield)
+processAction_ :: (Queue, TetrominoState, Playfield) -> Action -> (Queue, TetrominoState, Playfield)
 processAction_ (queue, piece, field) Drop
     = (newQueue, spawnPiece newPiece newPlayfield, newPlayfield)
     where
@@ -125,7 +129,7 @@ processAction_ (queue, piece, field) Rotate
     = (queue, processRotation (piece, field), field)
 processAction_ state _ = state
 
-isOnSurface :: TetrominoState -> TetrisPlayfield -> Bool
+isOnSurface :: TetrominoState -> Playfield -> Bool
 isOnSurface piece field = not $ allowedState (applyAction (Move (0, -1)) piece, field)
 
 updateLock :: LockState -> TetrominoState -> TetrominoState -> LockState
@@ -139,11 +143,11 @@ processAction :: State -> Action -> State
 processAction state@(queue, piece, field, lock@(LockState _ moves delay)) action
     = if
         | take 2 queue /= take 2 newQueue -> newState -- | locked down already
-        | not $ isOnSurface piece field -> newState -- | not on surface
-        | delay > 0 -> newState
-        | piece == newPiece -> state
+        | not $ isOnSurface piece field   -> newState -- | not on surface
+        | delay > 0                       -> newState
+        | piece == newPiece               -> state
         | piece /= newPiece && moves == 0 -> state
-        | otherwise -> newState
+        | otherwise                       -> newState
     where
         (newQueue, newPiece, newField) = processAction_ (queue, piece, field) action
         newLock = updateLock lock piece newPiece

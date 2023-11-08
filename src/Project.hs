@@ -2,11 +2,10 @@
 module Project where
 
 import           CodeWorld
-import           Queue
-import           Game
-import           Render
+import           Game          (GameState (currentPiece), handleGame, initGame)
+import           Queue         (generateQueue)
+import           Render        (renderGame)
 import           System.Random (newStdGen)
-import Tetrominos (Tetromino(ZPiece, IPiece))
 
 -- TODO: fix invalid movement
 
@@ -14,9 +13,6 @@ import Tetrominos (Tetromino(ZPiece, IPiece))
 run :: IO ()
 run = do
   generator <- newStdGen
-  let game = initGame $  IPiece:generateQueue generator
-      nextgame = handleGame (KeyPress "Up") game
+  let game = initGame $ generateQueue generator
   print $ currentPiece game
-  -- print $ movement nextgame
-  print $ currentPiece nextgame
   activityOf game handleGame renderGame
