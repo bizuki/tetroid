@@ -32,6 +32,10 @@ dependencies:
 - base >= 4.7 && < 5
 - codeworld-api
 - text
+- random
+- random-shuffle
+- containers
+- array
 
 library:
   source-dirs: src

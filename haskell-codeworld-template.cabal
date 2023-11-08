@@ -1,6 +1,6 @@
 cabal-version: 1.24
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.35.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -31,15 +31,27 @@ custom-setup
 
 library
   exposed-modules:
+      Common
+      Game
+      Keyboard
+      Movement
+      Playfield
       Project
+      Queue
+      Render
+      Tetrominos
   other-modules:
       Paths_haskell_codeworld_template
   hs-source-dirs:
       src
   ghc-options: -Wall -fno-warn-type-defaults
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , codeworld-api
+    , containers
+    , random
+    , random-shuffle
     , text
   default-language: Haskell2010
 
@@ -51,9 +63,13 @@ executable haskell-codeworld-template
       app
   ghc-options: -Wall -fno-warn-type-defaults -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , codeworld-api
+    , containers
     , haskell-codeworld-template
+    , random
+    , random-shuffle
     , text
   default-language: Haskell2010
 
@@ -66,9 +82,13 @@ test-suite doctests
   build-depends:
       Glob
     , QuickCheck
+    , array
     , base
     , codeworld-api
+    , containers
     , doctest
+    , random
+    , random-shuffle
     , template-haskell
     , text
   default-language: Haskell2010
@@ -85,9 +105,13 @@ test-suite spec
   build-tool-depends:
       hspec-discover:hspec-discover
   build-depends:
-      base >=4.7 && <5
+      array
+    , base >=4.7 && <5
     , codeworld-api
+    , containers
     , haskell-codeworld-template
     , hspec
+    , random
+    , random-shuffle
     , text
   default-language: Haskell2010
