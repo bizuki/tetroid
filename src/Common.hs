@@ -1,21 +1,21 @@
 module Common (
-    Coords,
-    Cell(..),
+  Coords,
+  Cell(..),
 
-    playfieldHeight,
-    playfieldWidth,
-    fullPlayfieldHeight,
+  playfieldHeight,
+  playfieldWidth,
+  fullPlayfieldHeight,
 
-    ActiveState(..)
+  ActiveState(..)
 ) where
 
 
 type Coords = (Int, Int)
 
-data Cell a = Cell {
-  value :: a,
-  pos   :: Coords
-} deriving (Show, Ord, Eq)
+data Cell a = Cell 
+  { value :: a
+  , pos   :: Coords
+  } deriving (Show, Ord, Eq)
 
 playfieldWidth :: Int
 playfieldWidth = 10
@@ -26,8 +26,7 @@ playfieldHeight = 20
 fullPlayfieldHeight :: Int
 fullPlayfieldHeight = 40
 
-
 data ActiveState 
-    = Start
-    | Playing
-    | GameOver
+  = Start
+  | Playing
+  | GameOver

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Render (
     renderGame
 ) where
@@ -6,7 +8,7 @@ module Render (
 import           CodeWorld
 
 import           Common              (Cell (Cell, pos), playfieldHeight,
-                                      playfieldWidth)
+                                      playfieldWidth, ActiveState(..))
 import           Control.Applicative (liftA2)
 import           Control.Monad       (join)
 import           Data.Bifunctor      (bimap)
@@ -105,12 +107,19 @@ renderQueue queue =
     offsetX = fromIntegral playfieldWidth * cellSize / 2 + 2
     offsetY = (fromIntegral playfieldHeight * cellSize / 2) - (fromIntegral (length pieces + 1) * (cellSize + 0.25))
 
+overlay :: Picture
+overlay = colored (RGBA 255.0 255.0 255.0 0.8) $ solidRectangle 100 100
+
+renderGameStateOverlay :: ActiveState -> Picture
+renderGameStateOverlay Playing    = blank
+renderGameStateOverlay Start      = lettering "PRESS SPACE TO START" <> overlay
+renderGameStateOverlay GameOver   = lettering "GAME OVER" <> overlay
+
 renderGame :: GameState -> Picture
-renderGame (GameState playfield _ _ _ _ currentPiece (QueueState queue _))
-  = renderField (tetrominoCells currentPiece) <>
+renderGame (GameState playfield _ _ _ gameState currentPiece (QueueState queue _))
+  = renderGameStateOverlay gameState <>
+    renderField (tetrominoCells currentPiece) <>
     renderField playfield <>
     renderQueue queue
   where
     renderField = renderPlayfield playfieldWidth playfieldHeight
-
-
