@@ -12,7 +12,7 @@ import           Control.Monad       (join)
 import           Data.Bifunctor      (bimap)
 import           Game                (GameState (GameState))
 import           Playfield           (Playfield)
-import           Queue               (Queue)
+import           Queue               (Queue, QueueState (QueueState))
 import           Tetrominos          (Tetromino (..), tetrominoCells)
 
 cellSize :: Double
@@ -106,7 +106,7 @@ renderQueue queue =
     offsetY = (fromIntegral playfieldHeight * cellSize / 2) - (fromIntegral (length pieces + 1) * (cellSize + 0.25))
 
 renderGame :: GameState -> Picture
-renderGame (GameState playfield _ _ _ currentPiece queue)
+renderGame (GameState playfield _ _ _ _ currentPiece (QueueState queue _))
   = renderField (tetrominoCells currentPiece) <>
     renderField playfield <>
     renderQueue queue

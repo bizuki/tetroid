@@ -10,12 +10,12 @@ module Playfield (
 import           Control.Applicative (liftA2)
 
 import           Common              (Cell (..), fullPlayfieldHeight,
-                                      playfieldHeight, playfieldWidth)
+                                      playfieldHeight, playfieldWidth, ActiveState(..))
 import           Data.List           (find, groupBy, sortBy)
-import           Data.Maybe          (fromMaybe, isJust, isNothing, mapMaybe)
+import           Data.Maybe          (fromMaybe, isJust, isNothing, mapMaybe, fromJust)
 import           Data.Set            (fromList)
 import           Movement            (Action (..))
-import           Queue               (Queue, takeTetromino)
+import           Queue               (QueueState (..), takeTetromino)
 import           Tetrominos          (LockState (..), Tetromino,
                                       TetrominoState (TetrominoState, tetrominoCenter, tetrominoRotation),
                                       initLock, rotate, tetrominoCells,
@@ -26,7 +26,7 @@ type Playfield' a = [Cell a]
 
 type Playfield = Playfield' (Maybe Tetromino)
 
-type State = (Queue, TetrominoState, Playfield, LockState)
+type State = (QueueState, TetrominoState, Playfield, LockState, ActiveState)
 
 createPlayfield :: Int -> Int -> Playfield
 createPlayfield w h = Cell Nothing <$> liftA2 (,) [0..(w - 1)] [0..(h - 1)]
@@ -86,11 +86,11 @@ clearLines field
             $ groupBy (\(Cell _ (_, y1)) (Cell _ (_, y2)) -> y1 == y2)
             $ sortBy (\(Cell _ (_, y1)) (Cell _ (_, y2)) -> compare y1 y2) field
 
-lockTetromino :: TetrominoState -> Playfield -> Playfield
+lockTetromino :: TetrominoState -> Playfield -> Maybe Playfield
 lockTetromino piece@(TetrominoState pieceType _ _) field =
         if aboveVisibleZone piece
-            then error "Game over"
-            else clearLines newField
+            then Nothing
+            else Just $ clearLines newField
     where
         cells = map pos $ tetrominoCells piece
         newField = map (
@@ -105,64 +105,75 @@ aboveVisibleZone piece = all (isAbove . pos) $ tetrominoCells piece
     where
         isAbove (_, y) = y >= playfieldHeight
 
-spawnPiece :: TetrominoState -> Playfield -> TetrominoState
-spawnPiece piece field = if allowedState (piece, field)
-    then piece
-    else let movedPiece = applyAction (Move (0, 1)) piece
-         in if allowedState (movedPiece, field)
-                then movedPiece
-                else error "Game over"
+spawnPiece :: TetrominoState -> Playfield -> Maybe TetrominoState
+spawnPiece piece field
+    = if allowedState (piece, field)
+        then Just piece
+        else let movedPiece = applyAction (Move (0, 1)) piece
+            in if allowedState (movedPiece, field)
+                    then Just movedPiece
+                    else Nothing
 
-processAction_ :: (Queue, TetrominoState, Playfield) -> Action -> (Queue, TetrominoState, Playfield)
+processAction_ :: (QueueState, TetrominoState, Playfield) -> Action -> Maybe (QueueState, TetrominoState, Playfield)
 processAction_ (queue, piece, field) Drop
-    = (newQueue, spawnPiece newPiece newPlayfield, newPlayfield)
+    = if isJust maybeSpawnedPiece
+        then Just (newQueue, fromJust maybeSpawnedPiece, fromJust maybeNewField)
+        else Nothing
     where
         finalPieceState = processDrop (piece, field)
-        newPlayfield = lockTetromino finalPieceState field
+        maybeNewField = lockTetromino finalPieceState field
         (newPiece, newQueue) = takeTetromino queue
+        maybeSpawnedPiece = spawnPiece newPiece =<< maybeNewField
 processAction_ (queue, piece, field) action@(Move _)
     = let newState = applyAction action piece
       in if allowedState (newState, field)
-            then (queue, newState, field)
-            else (queue, piece, field)
+            then Just (queue, newState, field)
+            else Just (queue, piece, field)
 processAction_ (queue, piece, field) Rotate
-    = (queue, processRotation (piece, field), field)
-processAction_ state _ = state
+    = Just (queue, processRotation (piece, field), field)
+processAction_ state _ = Just state
 
 isOnSurface :: TetrominoState -> Playfield -> Bool
 isOnSurface piece field = not $ allowedState (applyAction (Move (0, -1)) piece, field)
 
 updateLock :: LockState -> TetrominoState -> TetrominoState -> LockState
-updateLock lock@(LockState lowLine moves _) (TetrominoState _ _ (srcX, _)) (TetrominoState _ _ (dstX, dstY))
+updateLock lock@(LockState lowLine moves _) (TetrominoState _ srcRt (srcX, _)) (TetrominoState _ dstRt (dstX, dstY))
     = if
         | dstY < lowLine -> lock {moves = 15, lowestLine = dstY, delay = 0.5}
         | abs (srcX - dstX) > 0 -> lock {moves = moves - 1, delay = 0.5}
+        | srcRt /= dstRt -> lock {moves = moves - 1, delay = 0.5}
         | otherwise -> lock
 
 processAction :: State -> Action -> State
-processAction state@(queue, piece, field, lock@(LockState _ moves delay)) action
-    = if
-        | take 2 queue /= take 2 newQueue -> newState -- | locked down already
-        | not $ isOnSurface piece field   -> newState -- | not on surface
-        | delay > 0                       -> newState
-        | piece == newPiece               -> state
-        | piece /= newPiece && moves == 0 -> state
-        | otherwise                       -> newState
+processAction state@(queueState, piece, field, lock@(LockState _ moves delay), activeState) action
+    = if isNothing processedState then (queueState, piece, field, lock, GameOver)
+        else
+            let (newQueueState, newPiece, newField) = fromJust processedState
+                newLock = updateLock lock piece newPiece
+                newState = (newQueueState, newPiece, newField, newLock, activeState)
+            in if
+            | position newQueueState /= position queueState -> newState -- | locked down already
+            | not $ isOnSurface piece field   -> newState -- | not on surface
+            | delay > 0                       -> newState
+            | piece == newPiece               -> state
+            | piece /= newPiece && moves == 0 -> state
+            | otherwise                       -> newState
     where
-        (newQueue, newPiece, newField) = processAction_ (queue, piece, field) action
-        newLock = updateLock lock piece newPiece
-        newState = (newQueue, newPiece, newField, newLock)
+        processedState = processAction_ (queueState, piece, field) action
 
 processActions :: Double -> State -> [Action] -> State
-processActions time (queue, piece, field, lock) actions
+processActions time (queue, piece, field, lock, activeState) actions
     = if delay <= 0
         then
-            let lockedField = lockTetromino newPiece newField
+            let maybeLockedField = lockTetromino newPiece newField
                 (spawnedPiece, spawnedQueue) = takeTetromino newQueue
-            in (spawnedQueue, spawnPiece spawnedPiece lockedField, lockedField, initLock)
+                maybeSpawnedPiece = spawnPiece spawnedPiece =<< maybeLockedField
+            in if isNothing maybeSpawnedPiece
+                then (queue, piece, field, lock, GameOver)
+                else (spawnedQueue, fromJust maybeSpawnedPiece, fromJust maybeLockedField, initLock, newActiveState)
         else finalState
     where
         takeWhilePlus f lst = let (before, after) = span f lst in before ++ take 1 after
         actualizedLock = if isOnSurface piece field then updateLockDelay time lock else lock
-        finalState@(newQueue, newPiece, newField, LockState _ _ delay)
-            = foldl processAction (queue, piece, field, actualizedLock) . takeWhilePlus (/= Drop) . reverse $ actions
+        finalState@(newQueue, newPiece, newField, LockState _ _ delay, newActiveState)
+            = foldl processAction (queue, piece, field, actualizedLock, activeState) . takeWhilePlus (/= Drop) . reverse $ actions

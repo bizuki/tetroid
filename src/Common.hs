@@ -4,7 +4,9 @@ module Common (
 
     playfieldHeight,
     playfieldWidth,
-    fullPlayfieldHeight
+    fullPlayfieldHeight,
+
+    ActiveState(..)
 ) where
 
 
@@ -23,3 +25,9 @@ playfieldHeight = 20
 
 fullPlayfieldHeight :: Int
 fullPlayfieldHeight = 40
+
+
+data ActiveState 
+    = Start
+    | Playing
+    | GameOver

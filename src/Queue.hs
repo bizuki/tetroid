@@ -1,8 +1,11 @@
 module Queue (
+    QueueState(..),
     Queue,
 
     generateQueue,
-    takeTetromino
+    takeTetromino,
+    reinitQueue,
+    initQueue
 ) where
 
 import           System.Random         (RandomGen, uniformR)
@@ -11,6 +14,14 @@ import           Tetrominos            (Tetromino (..), TetrominoState,
                                         spawnTetromino)
 
 type Queue = [Tetromino]
+
+data QueueState = QueueState {
+    queue :: Queue,
+    position :: Int
+}
+
+initQueue :: RandomGen g => g -> QueueState
+initQueue g = QueueState (generateQueue g) 0
 
 generateQueue :: RandomGen g => g -> Queue
 generateQueue gen = shuffle allPieces sample ++ generateQueue newGen
@@ -28,5 +39,10 @@ shuffleSample n gen =
     in (x:xs, lastGen)
 
 
-takeTetromino :: Queue -> (TetrominoState, Queue)
-takeTetromino queue = let (x, xs) = splitAt 1 queue in (spawnTetromino (head x), xs)
+takeTetromino :: QueueState -> (TetrominoState, QueueState)
+takeTetromino (QueueState queue pos) = let (x, xs) = splitAt 1 queue in (spawnTetromino (head x), QueueState xs (pos + 1))
+
+reinitQueue :: QueueState -> QueueState
+reinitQueue (QueueState queue pos) = QueueState (drop skipped queue) (pos + skipped)
+    where
+        skipped = (7 - (pos `mod` 7)) + 7 * 3

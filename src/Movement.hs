@@ -105,7 +105,7 @@ handleVerticalControl (KeyEvent control True) state@(MovementState activeMovemen
         verticalQueue = [control],
         activeMovements = controlToMovement control ++ filter (/= gravityMovement) activeMovements}
 handleVerticalControl (KeyEvent control False) state@(MovementState activeMovements _ _)
-    = state {verticalQueue = [], activeMovements = filterOutControl control activeMovements}
+    = state {verticalQueue = [], activeMovements = gravityMovement:filterOutControl control activeMovements}
 
 handleControl :: KeyEvent -> MovementState -> MovementState
 handleControl event@(KeyEvent MoveLeft _) state = handleHorizontalControl event state
