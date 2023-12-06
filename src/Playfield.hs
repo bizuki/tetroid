@@ -34,7 +34,7 @@ createPlayfield w h = Cell Nothing <$> liftA2 (,) [0..(w - 1)] [0..(h - 1)]
 applyAction :: Action -> TetrominoState -> TetrominoState
 applyAction Drop state = applyAction (Move (0, -1)) state
 applyAction (Move (dx, dy)) state@(TetrominoState _ _ (x, y)) = state {tetrominoCenter = (x + dx, y + dy)}
-applyAction Rotate state@(TetrominoState _ rotation _) = state {tetrominoRotation = rotate rotation }
+applyAction (Rotate dir) state@(TetrominoState _ rotation _) = state {tetrominoRotation = rotate dir rotation }
 applyAction Lock state = state -- TODO: need to implement
 
 nonEmptyCells :: Playfield -> Playfield
@@ -51,9 +51,9 @@ allowedState (currentPiece, playfield)
     cells = map pos $ tetrominoCells currentPiece
     forbiddenCells = fromList $ map pos $ nonEmptyCells playfield
 
-processRotation :: (TetrominoState, Playfield) -> TetrominoState
-processRotation (piece, field)
-  = fromMaybe piece $ find ((flip $ curry allowedState) field) $ tryRotate piece
+processRotation :: (Bool, TetrominoState, Playfield) -> TetrominoState
+processRotation (dir, piece, field)
+  = fromMaybe piece $ find ((flip $ curry allowedState) field) $ tryRotate dir piece
 
 processDrop :: (TetrominoState, Playfield) -> TetrominoState
 processDrop (piece, field)
@@ -128,8 +128,8 @@ processAction_ (queue, piece, field) action@(Move _)
     if allowedState (newState, field)
       then Just (queue, newState, field)
       else Just (queue, piece, field)
-processAction_ (queue, piece, field) Rotate
-  = Just (queue, processRotation (piece, field), field)
+processAction_ (queue, piece, field) (Rotate dir)
+  = Just (queue, processRotation (dir, piece, field), field)
 processAction_ state _ = Just state
 
 isOnSurface :: TetrominoState -> Playfield -> Bool

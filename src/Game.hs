@@ -52,8 +52,7 @@ updatePiece _ state = state
 
 handleGame :: Event -> GameState -> GameState
 handleGame event state@(GameState _ _ _ _ Playing _ _)
-  = let state' = updateControl event state & updatePiece event
-    in trace (pack $ show $ lock state') state'
+  = updateControl event state & updatePiece event
 handleGame (KeyPress "R") (GameState _ _ _ _ GameOver _ queueState)
   = initGame Playing $ reinitQueue queueState
 handleGame (KeyPress " ") (GameState _ _ _ _ Start _ queueState) 

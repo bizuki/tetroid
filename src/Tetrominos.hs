@@ -63,11 +63,12 @@ tetrominoLayout LeftRotation piece = map rotateCounterClockwise_ (tetrominoLayou
 tetrominoLayout Double piece = map rotateCounterClockwise_ (tetrominoLayout LeftRotation piece)
 tetrominoLayout RightRotation piece = map rotateCounterClockwise_ (tetrominoLayout Double piece)
 
-rotate :: TetrominoRotation -> TetrominoRotation
-rotate Flat          = RightRotation
-rotate RightRotation = Double
-rotate Double        = LeftRotation
-rotate LeftRotation  = Flat
+rotate :: Bool -> TetrominoRotation -> TetrominoRotation
+rotate True Flat          = RightRotation
+rotate True RightRotation = Double
+rotate True Double        = LeftRotation
+rotate True LeftRotation  = Flat
+rotate False rot = foldr ($) rot (replicate 3 (rotate True))
 
 rotateOffsets :: Tetromino -> TetrominoRotation -> [(Int, Int)]
 rotateOffsets OPiece Flat = [(0, 0)]
@@ -83,15 +84,15 @@ rotateOffsets _ RightRotation = [(0, 0), (1, 0), (1, -1), (0, 2), (1, 2)]
 rotateOffsets _ Double = [(0, 0), (0, 0), (0, 0), (0, 0), (0, 0)]
 rotateOffsets _ LeftRotation = [(0, 0), (-1, 0), (-1, -1), (0, 2), (-1, 2)]
 
-tryRotate :: TetrominoState -> [TetrominoState]
-tryRotate (TetrominoState piece rotation (x, y))
+tryRotate :: Bool -> TetrominoState -> [TetrominoState]
+tryRotate dir (TetrominoState piece rotation (x, y))
   = zipWith
     (\(x1, y1) (x2, y2) -> TetrominoState piece dstRotation (x - x2 + x1, y - y2 + y1))
     srcOffsets
     dstOffsets
   where
     srcOffsets = rotateOffsets piece rotation
-    dstRotation = rotate rotation
+    dstRotation = rotate dir rotation
     dstOffsets = rotateOffsets piece dstRotation
 
 tetrominoCells :: TetrominoState -> [Cell (Maybe Tetromino)]

@@ -16,7 +16,8 @@ data Control
   | MoveLeft
   | SoftDrop
   | HardDrop
-  | RotateClockwise
+  | RotateCW
+  | RotateCCW
   deriving (Show, Eq)
 
 data KeyEvent = KeyEvent Control Bool deriving (Show, Eq)
@@ -26,7 +27,8 @@ parseControl_ "Right" = Just MoveRight
 parseControl_ "Left"  = Just MoveLeft
 parseControl_ " "     = Just HardDrop
 parseControl_ "Down"  = Just SoftDrop
-parseControl_ "Up"    = Just RotateClockwise
+parseControl_ "Z"    = Just RotateCCW
+parseControl_ "X"    = Just RotateCW
 parseControl_ _       = Nothing
 
 parseControl :: Event -> Maybe KeyEvent

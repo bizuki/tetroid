@@ -38,7 +38,7 @@ data Action
   = Drop
   | Move (Int, Int)
   | Lock
-  | Rotate
+  | Rotate Bool
   deriving (Eq, Show)
 
 data Movement
@@ -73,7 +73,8 @@ snapMovement :: Control -> [MovementType Movement]
 snapMovement HardDrop        = [Active 0 (Snap Drop)]
 snapMovement MoveLeft        = [Active 0 (Snap (Move (-1, 0)))]
 snapMovement MoveRight       = [Active 0 (Snap (Move (1, 0)))]
-snapMovement RotateClockwise = [Active 0 (Snap Rotate)]
+snapMovement RotateCW = [Active 0 (Snap $ Rotate True)]
+snapMovement RotateCCW = [Active 0 (Snap $ Rotate False)]
 snapMovement _               = []
 
 controlToMovement :: Control -> [MovementType Movement]
